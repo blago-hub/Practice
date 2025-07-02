@@ -1,0 +1,5 @@
+Model: tinyllama
+Prompt: dgdgdg
+Time: 26.39s
+
+dgdgdgfhgfhgdfhgdfhgdfgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgfhgf

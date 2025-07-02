@@ -1,0 +1,12 @@
+Model: tinyllama
+Prompt: d
+Time: 29.95s
+
+dung của hạt khô.
+
+Cuối cùng, hạt khô được sử dụng để điều chỉnh hình thức như sau:
+
+1. Hạt khô thay đổi đẹp, trẻ trung
+2. Hạt khô tạo nên được bình thường đẹp
+3. Hạt khô chính là một loại hạt cơ thể trong các dưới dưới bột nướng, chính trong hạt cơ thể nhỏ hơn.
+4
