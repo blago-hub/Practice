@@ -5,58 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LLM Web Interface</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        .model-selector {
-            margin-bottom: 20px;
-        }
-        textarea {
-            width: 100%;
-            min-height: 100px;
-            padding: 10px;
-            margin-bottom: 10px;
-        }
-        button {
-            padding: 10px 15px;
-            background: #007bff;
-            color: white;
-            border: none;
-            cursor: pointer;
-            margin-right: 10px;
-        }
-        button:disabled {
-            background: #cccccc;
-        }
-        #response {
-            margin-top: 20px;
-            white-space: pre-wrap;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 5px;
-        }
-        .status {
-            margin-top: 10px;
-            font-style: italic;
-            color: #6c757d;
-        }
-        .loader {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #007bff;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
-            display: none;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .model-selector { margin-bottom: 20px; }
+        textarea { width: 100%; min-height: 100px; padding: 10px; margin-bottom: 10px; }
+        button { padding: 10px 15px; background: #007bff; color: white; border: none; cursor: pointer; }
+        button:disabled { background: #cccccc; }
+        #response { margin-top: 20px; white-space: pre-wrap; padding: 15px; background: #f8f9fa; }
+        .status { margin-top: 10px; font-style: italic; color: #6c757d; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #007bff; border-radius: 50%; 
+                width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; display: none; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .error { color: #dc3545; }
     </style>
 </head>
 <body>
@@ -67,21 +26,19 @@
         <select id="model-select">
             <option value="tinyllama">TinyLlama (1.1B)</option>
             <option value="phi2">Phi-2 (2.7B)</option>
-            <option value="mistral">Mistral (7B)</option>
         </select>
         <button id="switch-btn">Сменить модель</button>
         <button id="clear-cache-btn">Очистить кеш</button>
         <div id="model-status" class="status"></div>
     </div>
 
-    <textarea id="prompt" placeholder="Введите ваш запрос..."></textarea>
+    <textarea id="prompt" placeholder="Введите ваш запрос (максимум 2000 символов)..."></textarea>
     <button id="generate-btn">Сгенерировать ответ</button>
     <div id="loader" class="loader"></div>
     <div id="response"></div>
-    <div id="report-info" class="status"></div>
 
     <script>
-        // Элементы интерфейса
+        const API_URL = window.location.origin;  // Автоматическое определение URL
         const modelSelect = document.getElementById('model-select');
         const switchBtn = document.getElementById('switch-btn');
         const clearCacheBtn = document.getElementById('clear-cache-btn');
@@ -90,21 +47,16 @@
         const generateBtn = document.getElementById('generate-btn');
         const loader = document.getElementById('loader');
         const responseDiv = document.getElementById('response');
-        const reportInfo = document.getElementById('report-info');
 
         // Загрузка информации о моделях
         async function loadModels() {
             try {
-                const response = await fetch('/api/models');
+                const response = await fetch(`${API_URL}/api/models`);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 const data = await response.json();
-
-                // Обновляем статус
                 modelStatus.textContent = `Текущая модель: ${data.current_model || 'не загружена'} (Устройство: ${data.device})`;
-
-                return data.available_models;
             } catch (error) {
-                console.error("Ошибка загрузки моделей:", error);
-                return [];
+                showError(`Ошибка загрузки моделей: ${error.message}`);
             }
         }
 
@@ -112,41 +64,21 @@
         async function switchModel() {
             const model = modelSelect.value;
             switchBtn.disabled = true;
-
+            
             try {
-                const response = await fetch('/api/switch_model', {
+                const response = await fetch(`${API_URL}/api/switch_model`, {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({model})
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ model })
                 });
-
+                
                 const data = await response.json();
-
-                if (data.success) {
-                    modelStatus.textContent = `Модель изменена на: ${model}`;
-                } else {
-                    alert(`Ошибка: ${data.error}`);
-                }
+                if (!data.success) throw new Error(data.error);
+                modelStatus.textContent = `Модель изменена на: ${model}`;
             } catch (error) {
-                alert(`Ошибка сети: ${error.message}`);
+                showError(error.message);
             } finally {
                 switchBtn.disabled = false;
-            }
-        }
-
-        // Очистка кеша
-        async function clearCache() {
-            clearCacheBtn.disabled = true;
-            try {
-                const response = await fetch('/api/clear_cache', {
-                    method: 'POST'
-                });
-                const result = await response.json();
-                alert(result.message || (result.error ? "Ошибка: " + result.error : "Кеш очищен"));
-            } catch (error) {
-                alert("Ошибка сети: " + error.message);
-            } finally {
-                clearCacheBtn.disabled = false;
             }
         }
 
@@ -156,47 +88,56 @@
             const model = modelSelect.value;
 
             if (!prompt) {
-                alert("Пожалуйста, введите запрос");
+                showError("Введите запрос");
                 return;
             }
 
             generateBtn.disabled = true;
             loader.style.display = 'block';
-            responseDiv.textContent = "";
-            reportInfo.textContent = "";
+            responseDiv.innerHTML = '';
 
             try {
-                const response = await fetch('/api/generate', {
+                const response = await fetch(`${API_URL}/api/generate`, {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({prompt, model})
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt, model })
                 });
 
                 const data = await response.json();
-
-                if (data.success) {
-                    responseDiv.innerHTML = `
-                        <strong>Ответ (${data.time_sec.toFixed(2)} сек):</strong>
-                        <p>${data.response}</p>
-                    `;
-                    reportInfo.textContent = `Отчет сохранен: ${data.report_path}`;
-                } else {
-                    responseDiv.textContent = `Ошибка: ${data.error}`;
-                }
+                if (!data.success) throw new Error(data.error);
+                
+                responseDiv.innerHTML = `
+                    <strong>Ответ (${data.time_sec.toFixed(2)} сек):</strong>
+                    <p>${data.response}</p>
+                `;
             } catch (error) {
-                responseDiv.textContent = `Ошибка сети: ${error.message}`;
+                showError(error.message);
             } finally {
                 generateBtn.disabled = false;
                 loader.style.display = 'none';
             }
         }
 
+        // Показать ошибку
+        function showError(message) {
+            responseDiv.innerHTML = `<div class="error">${message}</div>`;
+        }
+
         // Инициализация
         document.addEventListener('DOMContentLoaded', () => {
             loadModels();
             switchBtn.addEventListener('click', switchModel);
-            clearCacheBtn.addEventListener('click', clearCache);
             generateBtn.addEventListener('click', generateResponse);
+            
+            clearCacheBtn.addEventListener('click', async () => {
+                try {
+                    const response = await fetch(`${API_URL}/api/clear_cache`, { method: 'POST' });
+                    const data = await response.json();
+                    alert(data.message || (data.error ? "Ошибка: " + data.error : "Кеш очищен"));
+                } catch (error) {
+                    alert("Ошибка сети");
+                }
+            });
         });
     </script>
 </body>
